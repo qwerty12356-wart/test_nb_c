@@ -21,7 +21,8 @@
 
 #define LIBRARY_ADDRESS_BY_HANDLE(dlhandle) ((NULL == dlhandle) ? NULL : (void*)*(size_t const*)(dlhandle))
 
-
+//Adjust this number if you wish to use other patches
+#define PatchToUse 0
 
 typedef int (*patchmainfn)(void* , unsigned short );
 
@@ -47,11 +48,6 @@ static NativeBridgeCallbacks *get_callbacks()
                 "64"
 #endif
                 "/libhoudini.so";
-        const char* libnb_trans = "/system/lib"
-#ifdef __LP64__
-                                    "64"
-#endif
-                "/libndk_translation.so";
         const char* libnbpatcher = "/system/lib"
 #ifdef __LP64__
                                     "64"
@@ -60,9 +56,6 @@ static NativeBridgeCallbacks *get_callbacks()
 
         Dl_info nbinfo{};
         patchmainfn patch_mf = nullptr;
-        if (access("/system/etc/use_ndk_translation", F_OK) == 0){
-            libnb = libnb_trans;
-        }
         if (!native_handle) {
             native_handle = dlopen(libnb, RTLD_LAZY);
             if (!native_handle) {
@@ -80,13 +73,7 @@ static NativeBridgeCallbacks *get_callbacks()
             }
             patch_mf = (patchmainfn)dlsym(patcher_handle, "patch_main");
             if (patch_mf){
-                unsigned short index = 0;
-                //proper switch case if we need more than 2
-                if (libnb == libnb_trans){
-                    index = 1;
-                }
-                //see link_map for more details
-                patch_mf(LIBRARY_ADDRESS_BY_HANDLE(patcher_handle), index);
+                patch_mf(LIBRARY_ADDRESS_BY_HANDLE(patcher_handle), PatchToUse);
             }
         }
         
