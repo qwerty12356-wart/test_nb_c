@@ -253,6 +253,39 @@ static native_bridge_namespace_t *native_bridge4_getVendorNamespace()
     return cb ? cb->getVendorNamespace() : nullptr;
 }
 
+static native_bridge_namespace_t* native_bridge5_getExportedNamespace(const char* name){
+    #ifdef LOG_DEBUG
+        __android_log_print(ANDROID_LOG_DEBUG, "libnb_custom", "enter native_bridge5_getExportedNamespace");
+    #endif
+    NativeBridgeCallbacks* cb = get_callbacks();
+    return cb ? cb->getExportedNamespace(name) : nullptr;
+}
+
+static void native_bridge6_preZygoteFork(){
+    #ifdef LOG_DEBUG
+        __android_log_print(ANDROID_LOG_DEBUG, "libnb_custom", "enter native_bridge6_preZygoteFork");
+    #endif
+    NativeBridgeCallbacks* cb =  get_callbacks();
+    cb->preZygoteFork();
+}
+
+static void* native_bridge6_getTrampolineWithJNICallType(void* handle,const char* name,const char* shorty,uint32_t len,enum JNICallType jni_call_type){
+    #ifdef LOG_DEBUG
+        __android_log_print(ANDROID_LOG_DEBUG, "libnb_custom", "enter native_bridge6_getTrampolineWithJNICallType");
+    #endif
+    NativeBridgeCallbacks* cb = get_callbacks();
+    return cb ? cb->getTrampolineWithJNICallType(handle, name, shorty, len, jni_call_type) : nullptr;
+}
+
+static void* native_bridge6_getTrampolineForFunctionPointer(const void* method,const char* shorty,uint32_t len,enum JNICallType jni_call_type){
+     #ifdef LOG_DEBUG
+        __android_log_print(ANDROID_LOG_DEBUG, "libnb_custom", "enter native_bridge6_getTrampolineForFunctionPointer");
+    #endif
+    NativeBridgeCallbacks* cb = get_callbacks();
+    return cb ? cb->getTrampolineForFunctionPointer(method, shorty, len, jni_call_type) : nullptr;
+}
+
+
 static void __attribute__ ((destructor)) on_dlclose()
 {
     if (native_handle) {
@@ -265,7 +298,7 @@ extern "C" {
 
 NativeBridgeCallbacks NativeBridgeItf = {
     // v1
-    .version = 4,
+    .version = 5,
     .initialize = native_bridge2_initialize,
     .loadLibrary = native_bridge2_loadLibrary,
     .getTrampoline = native_bridge2_getTrampoline,
@@ -284,6 +317,13 @@ NativeBridgeCallbacks NativeBridgeItf = {
     .loadLibraryExt = native_bridge3_loadLibraryExt,
     // v4
     .getVendorNamespace = native_bridge4_getVendorNamespace,
+    // v5
+    .getExportedNamespace = native_bridge5_getExportedNamespace,
+    // v6?
+    .preZygoteFork = native_bridge6_preZygoteFork,
+    .getTrampolineWithJNICallType = native_bridge6_getTrampolineWithJNICallType,
+    .getTrampolineForFunctionPointer = native_bridge6_getTrampolineForFunctionPointer,
+
 };
 
 } // extern "C"
