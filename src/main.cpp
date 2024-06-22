@@ -74,7 +74,7 @@ static NativeBridgeCallbacks *get_callbacks()
             patch_mf = (patchmainfn)dlsym(patcher_handle, "patch_main");
 
             if (patch_mf){
-                patch_mf(LIBRARY_ADDRESS_BY_HANDLE(patcher_handle), PatchToUse);
+                patch_mf(native_handle, PatchToUse);
             }
             else{
                 __android_log_print(ANDROID_LOG_ERROR, "libnb_custom", "Failed to call patch function");
