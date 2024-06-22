@@ -30,7 +30,8 @@ typedef int (*patchmainfn)(void* , unsigned short );
 namespace android {
 
 static void *native_handle = nullptr;
-static void* patcher_handle = nullptr;
+static void *patcher_handle = nullptr;
+static NativeBridgeCallbacks *callbacks = nullptr;
 
 static bool is_native_bridge_enabled()
 {
@@ -39,9 +40,6 @@ static bool is_native_bridge_enabled()
 
 static NativeBridgeCallbacks *get_callbacks()
 {
-    static NativeBridgeCallbacks *callbacks = nullptr;
-    
-
     if (!callbacks) {
         const char *libnb = "/system/lib"
 #ifdef __LP64__
@@ -54,8 +52,11 @@ static NativeBridgeCallbacks *get_callbacks()
 #endif
                 "/libnbpatcher.so";
 
-        Dl_info nbinfo{};
+
+
+
         patchmainfn patch_mf = nullptr;
+
         if (!native_handle) {
             native_handle = dlopen(libnb, RTLD_LAZY);
             if (!native_handle) {
@@ -74,6 +75,7 @@ static NativeBridgeCallbacks *get_callbacks()
             patch_mf = (patchmainfn)dlsym(patcher_handle, "patch_main");
 
             if (patch_mf){
+                __android_log_print(ANDROID_LOG_INFO, "libnb_custom", "Hello, im here to tell you we are about to patch");
                 patch_mf(native_handle, PatchToUse);
             }
             else{
@@ -87,7 +89,6 @@ static NativeBridgeCallbacks *get_callbacks()
     }
     return callbacks;
 }
-
 // NativeBridgeCallbacks implementations
 static bool native_bridge2_initialize(const NativeBridgeRuntimeCallbacks *art_cbs,
                                       const char *app_code_cache_dir,
