@@ -17,44 +17,60 @@
 
 #include <dlfcn.h>
 #include <link.h>
+#include <execinfo.h>
 
 #include "nativebridge.h"
 #include <unistd.h>
 #include <android/log.h>
 
-#define LIBRARY_ADDRESS_BY_HANDLE(dlhandle) ((NULL == dlhandle) ? NULL : (void*)*(size_t const*)(dlhandle))
+
+
+#define LIBRARY_ADDRESS_BY_HANDLE(dlhandle) ((0 == dlhandle) ? 0 : (void*)*(size_t const*)(dlhandle))
 
 //Adjust this number if you wish to use other patches
 #define PatchToUse 0
 
-typedef int (*patchmainfn)(void* , unsigned short);
-struct helperCallbackstruct{
-    void* nbaddr;
-    const char* name;
+
+enum nbType{
+    HOUDINI = 0,
+    NDK = 1
 };
+//Adjust this number to load NDK
+unsigned short nbType = HOUDINI;
+
+typedef int (*patchmainfn)(void* , unsigned short);
 
 
-int dl_inte_callback(dl_phdr_info *info,size_t size, void *ptrtostr){
-    helperCallbackstruct* hpca = reinterpret_cast<helperCallbackstruct*>(ptrtostr);
-    if (!strcmp(hpca->name, info->dlpi_name)){
-        hpca->nbaddr = reinterpret_cast<void*>(info->dlpi_addr);
-        return 1;
+void* getBaseAddressFromhandle(void* handle){
+    //These hacks are nuts
+
+    Dl_info dlinf{};
+    if (!nbType){
+        //Do i look like i REALLY know what im doing?
+        void* dls = dlsym(handle, "s_000001");
+        if (dls){
+            __android_log_print(ANDROID_LOG_INFO, "libnb_custom", "dls is %ld", (long)dls);
+            if (!dladdr(dls, &dlinf)) {
+                __android_log_print(ANDROID_LOG_ERROR, "libnb_custom", "UH OH LOOKS LIKE IT FAILED");
+            } 
+            __android_log_print(ANDROID_LOG_DEBUG, "libnb_custom", "fbase is %ld", (long)dlinf.dli_fbase);
+        }
     }
-    return 0;
+    else {
+        //K.Y.S
+        void* dls =dlsym(handle, "ndk_translation_entry_ExitGeneratedCode");
+        dladdr(dls, &dlinf);
+    }
+    return dlinf.dli_fbase;
 }
-
-void* getBaseAddressFromName(const char* name){
-    helperCallbackstruct hpca{};
-    hpca.name = name;
-    dl_iterate_phdr(dl_inte_callback, &hpca);
-    return hpca.nbaddr;
-
-}
-
 
 
 namespace android {
-
+const char* ndkpath = "/system/lib"
+    #ifdef __LP64__
+        "64"
+    #endif
+        "libndk_translation.so";
 static void *native_handle = nullptr;
 static void *patcher_handle = nullptr;
 static NativeBridgeCallbacks *callbacks = nullptr;
@@ -74,6 +90,9 @@ static NativeBridgeCallbacks *get_callbacks()
                 "64"
         #endif
                 "/libhoudini.so";
+        if (nbType){
+            libnb = ndkpath;
+        }
 
         const char *libnbname = "libhoudini.so";
 
@@ -107,10 +126,9 @@ static NativeBridgeCallbacks *get_callbacks()
         if (!patch_main){
             __android_log_print(ANDROID_LOG_ERROR, "libnb_custom", "Failed to call patch_main %s", dlerror());
         }
-        __android_log_print(ANDROID_LOG_INFO, "libnb_custom", "Calling into patch main!");
 
 
-        patch_main(getBaseAddressFromName(libnbname), PatchToUse);
+        patch_main(getBaseAddressFromhandle(native_handle), PatchToUse);
 
         
         skip_patchercode:
