@@ -31,46 +31,14 @@
 #define PatchToUse 0
 
 
-enum nbType{
-    HOUDINI = 0,
-    NDK = 1
-};
-//Adjust this number to load NDK
-unsigned short nbType = HOUDINI;
+
 
 typedef int (*patchmainfn)(void* , unsigned short);
+typedef bool (*odmPatchfn)(const android::NativeBridgeRuntimeCallbacks*,const char *,const char *);
 
-
-void* getBaseAddressFromhandle(void* handle){
-    //These hacks are nuts
-
-    Dl_info dlinf{};
-    if (!nbType){
-        //Do i look like i REALLY know what im doing?
-        void* dls = dlsym(handle, "s_000001");
-        if (dls){
-            __android_log_print(ANDROID_LOG_INFO, "libnb_custom", "dls is %ld", (long)dls);
-            if (!dladdr(dls, &dlinf)) {
-                __android_log_print(ANDROID_LOG_ERROR, "libnb_custom", "UH OH LOOKS LIKE IT FAILED");
-            } 
-            __android_log_print(ANDROID_LOG_DEBUG, "libnb_custom", "fbase is %ld", (long)dlinf.dli_fbase);
-        }
-    }
-    else {
-        //K.Y.S
-        void* dls =dlsym(handle, "ndk_translation_entry_ExitGeneratedCode");
-        dladdr(dls, &dlinf);
-    }
-    return dlinf.dli_fbase;
-}
 
 
 namespace android {
-const char* ndkpath = "/system/lib"
-    #ifdef __LP64__
-        "64"
-    #endif
-        "libndk_translation.so";
 static void *native_handle = nullptr;
 static void *patcher_handle = nullptr;
 static NativeBridgeCallbacks *callbacks = nullptr;
@@ -90,12 +58,6 @@ static NativeBridgeCallbacks *get_callbacks()
                 "64"
         #endif
                 "/libhoudini.so";
-        if (nbType){
-            libnb = ndkpath;
-        }
-
-        const char *libnbname = "libhoudini.so";
-
 
 
         patchmainfn patch_mf = nullptr;
@@ -108,6 +70,7 @@ static NativeBridgeCallbacks *get_callbacks()
             }
         }
         patchmainfn patch_main = nullptr;
+        Dl_info baseaddr{};
         const char* libnbpatcher = "/system/lib"
         #ifdef __LP64__
                                     "64"
@@ -127,9 +90,8 @@ static NativeBridgeCallbacks *get_callbacks()
             __android_log_print(ANDROID_LOG_ERROR, "libnb_custom", "Failed to call patch_main %s", dlerror());
         }
 
-
-        patch_main(getBaseAddressFromhandle(native_handle), PatchToUse);
-
+        dladdr(dlsym(native_handle, "NativeBridgeItf"), &baseaddr);
+        patch_main(baseaddr.dli_fbase, PatchToUse);
         
         skip_patchercode:
         callbacks = reinterpret_cast<NativeBridgeCallbacks *>(dlsym(native_handle, "NativeBridgeItf"));
@@ -147,6 +109,10 @@ static bool native_bridge2_initialize(const NativeBridgeRuntimeCallbacks *art_cb
     #endif
     if (is_native_bridge_enabled()) {
         if (NativeBridgeCallbacks *cb = get_callbacks()) {
+            if (patcher_handle){
+                odmPatchfn odmPatch = reinterpret_cast<odmPatchfn>(dlsym(patcher_handle, "onDemandPatch"));
+                odmPatch(art_cbs, app_code_cache_dir, isa);
+            }
             return cb->initialize(art_cbs, app_code_cache_dir, isa);
         }
         __android_log_print(ANDROID_LOG_WARN,"libnb_custom", "Native bridge is enabled but callbacks not found");
