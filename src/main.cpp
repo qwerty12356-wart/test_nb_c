@@ -345,6 +345,10 @@ static void __attribute__ ((destructor)) on_dlclose()
         dlclose(native_handle);
         native_handle = nullptr;
     }
+    if (patcher_handle){
+        dlclose(patcher_handle);
+        patcher_handle = nullptr;
+    }
 }
 
 extern "C" {
