@@ -11,9 +11,12 @@
  *
  */
 
+#include <cstddef>
+#include <cstring>
 #define LOG_DEBUG
 
 #include <dlfcn.h>
+#include <link.h>
 
 #include "nativebridge.h"
 #include <unistd.h>
@@ -24,7 +27,30 @@
 //Adjust this number if you wish to use other patches
 #define PatchToUse 0
 
-typedef int (*patchmainfn)(void* , unsigned short );
+typedef int (*patchmainfn)(void* , unsigned short);
+struct helperCallbackstruct{
+    void* nbaddr;
+    const char* name;
+};
+
+
+int dl_inte_callback(dl_phdr_info *info,size_t size, void *ptrtostr){
+    helperCallbackstruct* hpca = reinterpret_cast<helperCallbackstruct*>(ptrtostr);
+    if (!strcmp(hpca->name, info->dlpi_name)){
+        hpca->nbaddr = reinterpret_cast<void*>(info->dlpi_addr);
+        return 1;
+    }
+    return 0;
+}
+
+void* getBaseAddressFromName(const char* name){
+    helperCallbackstruct hpca{};
+    hpca.name = name;
+    dl_iterate_phdr(dl_inte_callback, &hpca);
+    return hpca.nbaddr;
+
+}
+
 
 
 namespace android {
@@ -41,13 +67,15 @@ static bool is_native_bridge_enabled()
 static NativeBridgeCallbacks *get_callbacks()
 {
     if (!callbacks) {
+        //Dear whoever want to use this for libndk. change both libnb and libnbname to libndk_translation.so
+        //Due to technical concieniencies i have to do this.
         const char *libnb = "/system/lib"
         #ifdef __LP64__
                 "64"
         #endif
                 "/libhoudini.so";
 
-
+        const char *libnbname = "libhoudini.so";
 
 
 
@@ -80,7 +108,9 @@ static NativeBridgeCallbacks *get_callbacks()
             __android_log_print(ANDROID_LOG_ERROR, "libnb_custom", "Failed to call patch_main %s", dlerror());
         }
         __android_log_print(ANDROID_LOG_INFO, "libnb_custom", "Calling into patch main!");
-        patch_main(LIBRARY_ADDRESS_BY_HANDLE(native_handle), PatchToUse);
+
+
+        patch_main(getBaseAddressFromName(libnbname), PatchToUse);
 
         
         skip_patchercode:
