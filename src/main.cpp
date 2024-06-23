@@ -80,7 +80,7 @@ static NativeBridgeCallbacks *get_callbacks()
             __android_log_print(ANDROID_LOG_ERROR, "libnb_custom", "Failed to call patch_main %s", dlerror());
         }
         __android_log_print(ANDROID_LOG_INFO, "libnb_custom", "Calling into patch main!");
-        patch_main(native_handle, PatchToUse);
+        patch_main(LIBRARY_ADDRESS_BY_HANDLE(native_handle), PatchToUse);
 
         
         skip_patchercode:
