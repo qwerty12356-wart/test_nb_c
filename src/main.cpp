@@ -69,31 +69,6 @@ static NativeBridgeCallbacks *get_callbacks()
                 return nullptr;
             }
         }
-        patchmainfn patch_main = nullptr;
-        Dl_info baseaddr{};
-        const char* libnbpatcher = "/system/lib"
-        #ifdef __LP64__
-                                    "64"
-        #endif
-                "/libnbpatcher.so";
-        __android_log_print(ANDROID_LOG_INFO, "libnb_custom", "Begin patching");
-        if (!patcher_handle){
-            patcher_handle = dlopen(libnbpatcher, RTLD_LAZY);
-            if (!patcher_handle){
-                __android_log_print(ANDROID_LOG_ERROR, "libnb_custom", "Failed to load library %s", libnbpatcher);
-                goto skip_patchercode;
-            }
-        }
-
-        patch_main = reinterpret_cast<patchmainfn>(dlsym(patcher_handle, "patch_main"));
-        if (!patch_main){
-            __android_log_print(ANDROID_LOG_ERROR, "libnb_custom", "Failed to call patch_main %s", dlerror());
-        }
-
-        dladdr(dlsym(native_handle, "NativeBridgeItf"), &baseaddr);
-        patch_main(baseaddr.dli_fbase, PatchToUse);
-        
-        skip_patchercode:
         callbacks = reinterpret_cast<NativeBridgeCallbacks *>(dlsym(native_handle, "NativeBridgeItf"));
         __android_log_print(ANDROID_LOG_INFO,"libnb_custom" , libnb, callbacks ? callbacks->version : 0);
     }
@@ -109,6 +84,29 @@ static bool native_bridge2_initialize(const NativeBridgeRuntimeCallbacks *art_cb
     #endif
     if (is_native_bridge_enabled()) {
         if (NativeBridgeCallbacks *cb = get_callbacks()) {
+            if (!patcher_handle){
+                const char* libnbpatcher = "/system/lib"
+                #ifdef __LP64__
+                                    "64"
+                #endif
+                "/libnbpatcher.so";
+                patcher_handle = dlopen(libnbpatcher, RTLD_LAZY);
+                if (!patcher_handle){
+                    __android_log_print(ANDROID_LOG_ERROR, "libnb_custom", "libnbpatcher not found");
+                    goto next;
+                }
+                patchmainfn patch_main = reinterpret_cast<patchmainfn>(dlsym(patcher_handle, "patch_main"));
+
+                if (!patch_main){
+                    __android_log_print(ANDROID_LOG_ERROR, "libnb_custom", "Failed to call patch_main");
+                    goto next;
+                }
+                Dl_info dlinf{};
+                dladdr(cb, &dlinf);
+                patch_main(dlinf.dli_fbase, 2);
+                
+            }
+            next:
             if (patcher_handle){
                 odmPatchfn odmPatch = reinterpret_cast<odmPatchfn>(dlsym(patcher_handle, "onDemandPatch"));
                 odmPatch(art_cbs, app_code_cache_dir, isa);
