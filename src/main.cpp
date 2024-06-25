@@ -103,7 +103,7 @@ static bool native_bridge2_initialize(const NativeBridgeRuntimeCallbacks *art_cb
                 }
                 Dl_info dlinf{};
                 dladdr(cb, &dlinf);
-                patch_main(dlinf.dli_fbase, 2);
+                patch_main(dlinf.dli_fbase, PatchToUse);
                 
             }
             next:
