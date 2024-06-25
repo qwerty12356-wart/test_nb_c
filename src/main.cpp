@@ -51,16 +51,11 @@ static bool is_native_bridge_enabled()
 static NativeBridgeCallbacks *get_callbacks()
 {
     if (!callbacks) {
-        //Dear whoever want to use this for libndk. change both libnb and libnbname to libndk_translation.so
-        //Due to technical concieniencies i have to do this.
         const char *libnb = "/system/lib"
         #ifdef __LP64__
                 "64"
         #endif
                 "/libhoudini.so";
-
-
-        patchmainfn patch_mf = nullptr;
 
         if (!native_handle) {
             native_handle = dlopen(libnb, RTLD_LAZY);
