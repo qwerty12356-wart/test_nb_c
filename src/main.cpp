@@ -28,9 +28,9 @@
 
 #ifndef USED_NATIVEBRIDGE
 #ifdef USE_NDK
-#define USED_NATIVEBRIDGE "libndk_translation.so"
+#define USED_NATIVEBRIDGE "/libndk_translation.so"
 #else
-#define USED_NATIVEBRIDGE "libhoudini.so"
+#define USED_NATIVEBRIDGE "/libhoudini.so"
 #endif
 #endif
 
