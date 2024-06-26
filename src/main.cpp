@@ -11,16 +11,10 @@
  *
  */
 
-#include <cstddef>
-#include <cstring>
-#define LOG_DEBUG
 
 #include <dlfcn.h>
-#include <link.h>
-#include <execinfo.h>
 
 #include "nativebridge.h"
-#include <unistd.h>
 #include <android/log.h>
 
 
@@ -28,9 +22,17 @@
 #define LIBRARY_ADDRESS_BY_HANDLE(dlhandle) ((0 == dlhandle) ? 0 : (void*)*(size_t const*)(dlhandle))
 
 //Adjust this number if you wish to use other patches
-#define PatchToUse 0
+#ifndef PATCHTOUSE
+#define PATCHTOUSE 0
+#endif
 
-
+#ifndef USED_NATIVEBRIDGE
+#ifdef USE_NDK
+#define USED_NATIVEBRIDGE "libndk_translation.so"
+#else
+#define USED_NATIVEBRIDGE "libhoudini.so"
+#endif
+#endif
 
 
 typedef int (*patchmainfn)(void* , unsigned short);
@@ -55,7 +57,7 @@ static NativeBridgeCallbacks *get_callbacks()
         #ifdef __LP64__
                 "64"
         #endif
-                "/libhoudini.so";
+                USED_NATIVEBRIDGE;
 
         if (!native_handle) {
             native_handle = dlopen(libnb, RTLD_LAZY);
@@ -90,15 +92,18 @@ static bool native_bridge2_initialize(const NativeBridgeRuntimeCallbacks *art_cb
                     __android_log_print(ANDROID_LOG_ERROR, "libnb_custom", "libnbpatcher not found");
                     goto next;
                 }
-                patchmainfn patch_main = reinterpret_cast<patchmainfn>(dlsym(patcher_handle, "patch_main"));
+                else {
+                    patchmainfn patch_main = reinterpret_cast<patchmainfn>(dlsym(patcher_handle, "patch_main"));
 
-                if (!patch_main){
-                    __android_log_print(ANDROID_LOG_ERROR, "libnb_custom", "Failed to call patch_main");
-                    goto next;
+                    if (!patch_main){
+                        __android_log_print(ANDROID_LOG_ERROR, "libnb_custom", "Failed to call patch_main");
+                        goto next;
+                    }
+                    Dl_info dlinf{};
+                    dladdr(cb, &dlinf);
+                
+                    patch_main(dlinf.dli_fbase, PATCHTOUSE);
                 }
-                Dl_info dlinf{};
-                dladdr(cb, &dlinf);
-                patch_main(dlinf.dli_fbase, PatchToUse);
                 
             }
             next:
