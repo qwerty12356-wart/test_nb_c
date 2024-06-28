@@ -9,7 +9,9 @@ A custom libnb.so. Which will load a special patch library (found [here](https:/
 # Building
 1. Either export ANDROID_NDK_HOME or edit it in CMakeLists.txt to point to the folder containing the extracted Android NDK tools
 2. ``cmake . -B build -D{ADD_MORE_OPTION_HERE}``
-3.``cd build``, ``make``
+3. ``cd build``, ``make``
+
+
 Available build options:
 COMPILE_ARCH
 LOG_DEBUG
