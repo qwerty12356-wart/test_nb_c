@@ -13,6 +13,11 @@ A custom libnb.so. Which will load a special patch library (found [here](https:/
 
 
 Available build options:
-COMPILE_ARCH
-LOG_DEBUG
-Enable it like this: ``cmake -B build -DCOMPILE_ARCH=1``
+
+COMPILE_ARCH: x86 (32bit), x86_64 (64bit, default)
+
+LOG_DEBUG: Set it to 1 to enable debug logs
+
+PATCHTOUSE: Set equal to patch index, default:0 (Houdini 12), for the index list, see [here](https://github.com/qwerty12356-wart/test_nbpatch/blob/master/src/main.h#L19)
+
+Example build options: ``cmake -B build -DCOMPILE_ARCH=x86 -DPATCHTOUSE=0``
