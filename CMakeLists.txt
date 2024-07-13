@@ -12,7 +12,7 @@ if(DEFINED PATCHTOUSE)
 endif()
 
 if (DEFINED USE_NATIVEBRIDGE)
-    add_compile_definitions(USE_NATIVEBRIDGE=${USE_NATIVEBRIDGE})
+    add_compile_definitions(USE_NATIVEBRIDGE=\"${USE_NATIVEBRIDGE}\")
 endif()
 
 
