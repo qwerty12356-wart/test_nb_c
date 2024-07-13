@@ -11,9 +11,11 @@ if(DEFINED PATCHTOUSE)
     add_compile_definitions(PATCHTOUSE=${PATCHTOUSE})
 endif()
 
-if(DEFINED USE_NDK)
-    add_compile_definitions(USE_NDK)
+if (DEFINED USE_NATIVEBRIDGE)
+    add_compile_definitions(USE_NATIVEBRIDGE=${USE_NATIVEBRIDGE})
 endif()
+
+
 
 
 include(FetchContent)

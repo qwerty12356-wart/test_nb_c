@@ -26,18 +26,19 @@
 #define PATCHTOUSE 0
 #endif
 
-#ifndef USED_NATIVEBRIDGE
-#ifdef USE_NDK
-#define USED_NATIVEBRIDGE "/libndk_translation.so"
-#else
-#define USED_NATIVEBRIDGE "/libhoudini.so"
+#ifndef USE_NATIVEBRIDGE
+#define USE_NATIVEBRIDGE "libhoudini.so"
 #endif
-#endif
+
+
+#define USED_NATIVEBRIDGE "/" USE_NATIVEBRIDGE
+
+
+
 
 
 typedef int (*patchmainfn)(void* , unsigned short);
 typedef bool (*odmPatchfn)(const android::NativeBridgeRuntimeCallbacks*,const char *,const char *);
-
 
 
 namespace android {
